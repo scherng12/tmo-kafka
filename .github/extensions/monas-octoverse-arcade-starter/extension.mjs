@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createCanvas, joinSession } from "@github/copilot-sdk/extension";
 
 const CANVAS_ID = "monas-octoverse-arcade-starter";
-const TITLE = "Mona's Octoverse Arcade starter";
+const TITLE = "Hiring Quest";
 const GAME_FILE = join(dirname(fileURLToPath(import.meta.url)), "game.html");
 const servers = new Map();
 let session;
@@ -51,7 +51,7 @@ async function startServer() {
 const canvas = createCanvas({
   id: CANVAS_ID,
   displayName: TITLE,
-  description: "Open the starter welcome screen for the Mona's Octoverse Arcade game challenge.",
+  description: "Open the Hiring Quest office-adventure game.",
   open: async (ctx) => {
     let startup = servers.get(ctx.instanceId);
     if (!startup) {
