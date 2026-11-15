@@ -46,7 +46,7 @@
     .controls { display: flex; justify-content: space-between; align-items: center; gap: 0.65rem; margin-top: 0.65rem; }
     .key-help { margin: 0; color: #756d82; font-size: 0.76rem; }
     .mobile-controls { display: none; }
-    .pad { display: grid; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: 0.15rem; }
+    .pad { display: grid; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: 0.15rem; touch-action: none; user-select: none; }
     .pad button { width: 2.8rem; height: 2.8rem; min-width: 0; min-height: 0; padding: 0.2rem; border-radius: 50%; background: #8d74bf; font-size: 1.2rem; touch-action: none; user-select: none; }
     .pad [data-key="ArrowUp"] { grid-column: 2; grid-row: 1; }
     .pad [data-key="ArrowLeft"] { grid-column: 1; grid-row: 2; }
@@ -124,6 +124,9 @@
       .mobile-controls .pad button { min-height: 2.8rem; box-shadow: 0 2px 6px #26133a66; }
       .mobile-controls .action-buttons { position: absolute; right: max(0.4rem, env(safe-area-inset-right)); bottom: max(0.4rem, env(safe-area-inset-bottom)); flex-direction: column; align-items: stretch; gap: 0.6rem; }
       .mobile-controls .action-buttons button { width: 7.5rem; min-width: 7.5rem; min-height: 2.8rem; font-size: 0.85rem; box-shadow: 0 2px 6px #26133a66; }
+      .mobile-controls .action-buttons [data-action="politics"] { min-height: 4rem; }
+      .mobile-controls .action-buttons [data-action="politics"]:active { transform: translateY(2px); background: #852044; box-shadow: 0 1px 3px #26133a66; }
+      .pad button.is-active { background: #5e3b91; box-shadow: inset 0 0 0 2px #fff, 0 2px 6px #26133a66; }
     }
     @media (max-width: 350px) {
       .mobile-controls .action-buttons button { width: 6.8rem; min-width: 6.8rem; }
@@ -190,7 +193,7 @@
             </div>
             <div class="action-buttons">
               <button type="button" data-action="interact">E · Go!</button>
-              <button type="button" data-action="politics" aria-label="Fire POLITICS">✨ Fire POLITICS</button>
+              <button type="button" data-action="politics" aria-label="Hold to fire a POLITICS volley">✨ Hold to volley</button>
             </div>
           </div>
         </div>
@@ -252,6 +255,7 @@
     const checklist = [...document.querySelectorAll("#checklist li")];
     const workMeter = document.querySelector(".meter");
     const keys = new Set();
+    const padKeys = new Set();
     const width = canvas.width;
     const height = canvas.height;
     const tmoWaitSeconds = 12;
@@ -312,11 +316,19 @@
     let ended;
     let nextTipAt;
     let lastPoliticsAt;
+    let politicsHeld = false;
+    let padPointerId = null;
+    let padDirectionIndex = null;
     let previousTime = 0;
     let lastHint = "";
 
     function resetGame() {
       keys.clear();
+      padKeys.clear();
+      syncPadButtons();
+      padPointerId = null;
+      padDirectionIndex = null;
+      politicsHeld = false;
       player = { x: 44, y: 225, radius: 14, facing: { x: 1, y: 0 } };
       score = 0;
       hearts = 3;
@@ -549,14 +561,19 @@
     function shootPolitics() {
       if (!running || ended || taskOpen || elapsed - lastPoliticsAt < 0.2) return;
       lastPoliticsAt = elapsed;
-      projectiles.push({
-        x: player.x + player.facing.x * 17,
-        y: player.y + player.facing.y * 17,
-        vx: player.facing.x * 310,
-        vy: player.facing.y * 310,
-        life: 1.8
+      [-0.08, 0, 0.08].forEach((spread) => {
+        const angle = Math.atan2(player.facing.y, player.facing.x) + spread;
+        const vx = Math.cos(angle) * 310;
+        const vy = Math.sin(angle) * 310;
+        projectiles.push({
+          x: player.x + Math.cos(angle) * 17,
+          y: player.y + Math.sin(angle) * 17,
+          vx,
+          vy,
+          life: 1.8
+        });
       });
-      setHint("POLITICS! Make your case!");
+      setHint("POLITICS volley! Make your case!");
     }
 
     function updateWorkMonsters(dt) {
@@ -644,6 +661,7 @@
     function update(dt) {
       if (!running || ended || taskOpen) return;
       elapsed += dt;
+      if (politicsHeld) shootPolitics();
       invulnerable = Math.max(0, invulnerable - dt);
       const speed = Math.min(310, 170 + Math.floor(elapsed / 15) * 12);
       speedDisplay.textContent = `${(speed / 170).toFixed(1)}×`;
@@ -658,10 +676,10 @@
 
       let dx = 0;
       let dy = 0;
-      if (keys.has("ArrowLeft") || keys.has("a")) dx -= 1;
-      if (keys.has("ArrowRight") || keys.has("d")) dx += 1;
-      if (keys.has("ArrowUp") || keys.has("w")) dy -= 1;
-      if (keys.has("ArrowDown") || keys.has("s")) dy += 1;
+      if (keys.has("ArrowLeft") || keys.has("a") || padKeys.has("ArrowLeft")) dx -= 1;
+      if (keys.has("ArrowRight") || keys.has("d") || padKeys.has("ArrowRight")) dx += 1;
+      if (keys.has("ArrowUp") || keys.has("w") || padKeys.has("ArrowUp")) dy -= 1;
+      if (keys.has("ArrowDown") || keys.has("s") || padKeys.has("ArrowDown")) dy += 1;
       if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
       if (dx || dy) player.facing = { x: dx, y: dy };
       player.x = clamp(player.x + dx * speed * dt, player.radius, width - player.radius);
@@ -1065,19 +1083,95 @@
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
       keys.delete(key);
     });
-    document.querySelectorAll("[data-key]").forEach((button) => {
-      const key = button.dataset.key;
-      button.addEventListener("pointerdown", (event) => { event.preventDefault(); keys.add(key); });
-      ["pointerup", "pointerleave", "pointercancel"].forEach((type) => {
-        button.addEventListener(type, () => keys.delete(key));
+    const directionPad = document.querySelector(".mobile-controls .pad");
+    function syncPadButtons() {
+      directionPad.querySelectorAll("[data-key]").forEach((button) => {
+        button.classList.toggle("is-active", padKeys.has(button.dataset.key));
       });
+    }
+    const directionSectors = [
+      ["ArrowRight"],
+      ["ArrowRight", "ArrowDown"],
+      ["ArrowDown"],
+      ["ArrowDown", "ArrowLeft"],
+      ["ArrowLeft"],
+      ["ArrowLeft", "ArrowUp"],
+      ["ArrowUp"],
+      ["ArrowUp", "ArrowRight"]
+    ];
+    function updatePadDirection(event) {
+      if (event.pointerId !== padPointerId) return;
+      const bounds = directionPad.getBoundingClientRect();
+      const dx = (event.clientX - (bounds.left + bounds.width / 2)) / (bounds.width / 2);
+      const dy = (event.clientY - (bounds.top + bounds.height / 2)) / (bounds.height / 2);
+      if (Math.hypot(dx, dy) < 0.22) {
+        padKeys.clear();
+        padDirectionIndex = null;
+        syncPadButtons();
+        return;
+      }
+
+      const angle = Math.atan2(dy, dx);
+      const sectorWidth = Math.PI / 4;
+      const candidate = (Math.round(angle / sectorWidth) + directionSectors.length) % directionSectors.length;
+      if (padDirectionIndex !== null) {
+        const previousCenter = padDirectionIndex * sectorWidth;
+        const difference = Math.atan2(Math.sin(angle - previousCenter), Math.cos(angle - previousCenter));
+        if (Math.abs(difference) <= sectorWidth / 2 + 0.08) {
+          padKeys.clear();
+          directionSectors[padDirectionIndex].forEach((key) => padKeys.add(key));
+          syncPadButtons();
+          return;
+        }
+      }
+
+      padDirectionIndex = candidate;
+      padKeys.clear();
+      directionSectors[candidate].forEach((key) => padKeys.add(key));
+      syncPadButtons();
+    }
+    function releasePadPointer(event) {
+      if (event.pointerId !== padPointerId) return;
+      padPointerId = null;
+      padDirectionIndex = null;
+      padKeys.clear();
+      syncPadButtons();
+    }
+    directionPad.addEventListener("pointerdown", (event) => {
+      if (padPointerId !== null) return;
+      event.preventDefault();
+      padPointerId = event.pointerId;
+      directionPad.setPointerCapture(event.pointerId);
+      updatePadDirection(event);
+    });
+    directionPad.addEventListener("pointermove", updatePadDirection);
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
+      directionPad.addEventListener(type, releasePadPointer);
     });
     document.querySelector("#start").addEventListener("click", startGame);
     document.querySelector("#restart").addEventListener("click", () => { resetGame(); startGame(); });
     document.querySelectorAll("#interact, [data-action='interact']").forEach((button) => button.addEventListener("click", interact));
-    document.querySelectorAll("#politics, [data-action='politics']").forEach((button) => button.addEventListener("click", shootPolitics));
+    document.querySelectorAll("#politics, [data-action='politics']").forEach((button) => {
+      button.addEventListener("click", shootPolitics);
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        politicsHeld = true;
+        button.setPointerCapture(event.pointerId);
+        shootPolitics();
+      });
+      ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
+        button.addEventListener(type, () => { politicsHeld = false; });
+      });
+    });
     document.querySelector("#task-close").addEventListener("click", closeHRTask);
-    window.addEventListener("blur", () => keys.clear());
+    window.addEventListener("blur", () => {
+      keys.clear();
+      padKeys.clear();
+      syncPadButtons();
+      padPointerId = null;
+      padDirectionIndex = null;
+      politicsHeld = false;
+    });
 
     resetGame();
     requestAnimationFrame(frame);
