@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Hiring Quest</title>
   <link rel="icon" href="data:,">
   <style>
@@ -33,7 +33,7 @@
     .board-wrap { position: relative; overflow: hidden; border: 2px solid #e5dcf2; border-radius: 0.8rem; background: #f3eadc; }
     canvas { display: block; width: 100%; height: auto; aspect-ratio: 800 / 450; outline: none; }
     canvas:focus-visible { box-shadow: inset 0 0 0 4px #8664cb; }
-    .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; background: #30243fc9; }
+    .overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 1rem; background: #30243fc9; }
     .overlay[hidden] { display: none; }
     .dialog { width: min(100%, 26rem); max-height: 100%; overflow-y: auto; padding: 1.15rem; background: #fffaf0; border: 2px solid #fff; border-radius: 1rem; text-align: center; box-shadow: 0 12px 36px #160d2b55; }
     .dialog .sticker { margin: 0; font-size: 2.2rem; }
@@ -45,8 +45,8 @@
     .hint { min-height: 2.5em; margin: 0.65rem 0 0; color: #55496d; font-weight: 650; }
     .controls { display: flex; justify-content: space-between; align-items: center; gap: 0.65rem; margin-top: 0.65rem; }
     .key-help { margin: 0; color: #756d82; font-size: 0.76rem; }
-    .game-controls { display: flex; align-items: center; gap: 0.65rem; }
-    .pad { display: none; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: 0.15rem; }
+    .mobile-controls { display: none; }
+    .pad { display: grid; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: 0.15rem; }
     .pad button { width: 2.8rem; height: 2.8rem; min-width: 0; min-height: 0; padding: 0.2rem; border-radius: 50%; background: #8d74bf; font-size: 1.2rem; touch-action: none; user-select: none; }
     .pad [data-key="ArrowUp"] { grid-column: 2; grid-row: 1; }
     .pad [data-key="ArrowLeft"] { grid-column: 1; grid-row: 2; }
@@ -55,9 +55,40 @@
     .pad-center { display: grid; width: 2rem; height: 2rem; grid-column: 2; grid-row: 2; place-items: center; border-radius: 50%; color: #63409f; background: #eee7fa; font-size: 0.65rem; font-weight: 900; pointer-events: none; }
     .action-buttons { display: flex; gap: 0.35rem; }
     .action-buttons button { min-width: 4.5rem; min-height: 2.8rem; padding: 0.45rem 0.6rem; font-size: 0.8rem; }
-    #politics { min-height: 3.8rem; border-radius: 1rem; background: #bd3567; font-size: 0.95rem; font-weight: 900; line-height: 1.15; text-transform: uppercase; box-shadow: 0 3px 0 #852044; }
-    #politics:hover { background: #a92d5b; }
+    #politics, [data-action="politics"] { min-height: 3.8rem; border-radius: 1rem; background: #bd3567; font-size: 0.95rem; font-weight: 900; line-height: 1.15; text-transform: uppercase; box-shadow: 0 3px 0 #852044; }
+    #politics:hover, [data-action="politics"]:hover { background: #a92d5b; }
     .orientation-tip { display: none; margin: 0 0 0.5rem; padding: 0.45rem 0.65rem; border-radius: 0.6rem; color: #634c16; background: #fff3d4; font-size: 0.78rem; font-weight: 700; text-align: center; }
+    @media (max-width: 720px), (pointer: coarse) {
+      body { padding: 0.4rem; }
+      header { margin-bottom: 0.35rem; }
+      header .eyebrow, header .subtitle { display: none; }
+      h1 { font-size: 1.45rem; }
+      .game-layout { grid-template-columns: 1fr; gap: 0.5rem; }
+      .game-card { padding: 0.4rem; }
+      .quest-card { order: 2; }
+      .stats { gap: 0.3rem; margin-bottom: 0.35rem; }
+      .stat { padding: 0.2rem 0.4rem; font-size: 0.7rem; }
+      .stat strong { font-size: 0.85rem; }
+      .meter { height: 0.35rem; }
+      .hint { min-height: 1.7em; margin: 0.35rem 0; font-size: 0.78rem; }
+      .orientation-tip { margin-bottom: 0.35rem; padding: 0.3rem 0.5rem; font-size: 0.72rem; }
+    }
+    @media (max-width: 720px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
+      header { display: none; }
+      .game-layout { gap: 0.25rem; }
+      .game-card { padding: 0.3rem; }
+      .stats { gap: 0.2rem; margin-bottom: 0.25rem; }
+      .stat { padding: 0.1rem 0.35rem; }
+      .work-stat { flex: 1 1 10rem; }
+      .quest-card { display: none; }
+      .board-wrap { display: flex; justify-content: center; }
+      canvas { width: auto; height: min(56.25vw, calc(100vh - 7rem)); max-width: 100%; }
+    }
+    @supports (height: 100dvh) {
+      @media (max-width: 720px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
+        canvas { height: min(56.25vw, calc(100dvh - 7rem)); }
+      }
+    }
     .quest-card { padding: 1rem; }
     .quest-card h2 { margin: 0; font-size: 1.05rem; }
     .quest-card .small { margin: 0.25rem 0 0.85rem; color: #756d82; font-size: 0.8rem; }
@@ -84,23 +115,18 @@
     .task-dialog .choice { width: 100%; margin-top: 0.45rem; color: #4b3472; background: #f1eaff; text-align: left; }
     .task-dialog .choice:hover { background: #e6daf9; }
     #task-feedback { min-height: 1.5em; margin: 0.4rem 0; color: #9c4a60; font-size: 0.82rem; font-weight: 650; }
-    @media (max-width: 720px) {
-      body { padding: 0.75rem; }
-      .game-layout { grid-template-columns: 1fr; }
-      .quest-card { order: 2; }
-    }
     @media (max-width: 720px), (pointer: coarse) {
-      .controls { justify-content: center; }
-      .key-help { display: none; }
-      .game-controls { width: 100%; justify-content: space-between; gap: 0.5rem; }
-      .pad { display: grid; }
-      .action-buttons { flex-direction: column; align-items: stretch; gap: 0.6rem; }
-      .action-buttons button { width: 7.5rem; min-width: 7.5rem; min-height: 2.8rem; font-size: 0.85rem; }
-      .pad button { min-height: 2.8rem; }
+      .controls { display: none; }
+      .mobile-controls { position: absolute; inset: 0; z-index: 2; display: block; pointer-events: none; }
+      .mobile-controls .pad { position: absolute; left: max(0.4rem, env(safe-area-inset-left)); bottom: max(0.4rem, env(safe-area-inset-bottom)); }
+      .mobile-controls .pad button,
+      .mobile-controls .action-buttons { pointer-events: auto; }
+      .mobile-controls .pad button { min-height: 2.8rem; box-shadow: 0 2px 6px #26133a66; }
+      .mobile-controls .action-buttons { position: absolute; right: max(0.4rem, env(safe-area-inset-right)); bottom: max(0.4rem, env(safe-area-inset-bottom)); flex-direction: column; align-items: stretch; gap: 0.6rem; }
+      .mobile-controls .action-buttons button { width: 7.5rem; min-width: 7.5rem; min-height: 2.8rem; font-size: 0.85rem; box-shadow: 0 2px 6px #26133a66; }
     }
     @media (max-width: 350px) {
-      .game-controls { gap: 0.2rem; }
-      .action-buttons button { width: 6.8rem; min-width: 6.8rem; }
+      .mobile-controls .action-buttons button { width: 6.8rem; min-width: 6.8rem; }
     }
     @media (orientation: portrait) {
       html.mobile-device .orientation-tip { display: block; }
@@ -154,12 +180,7 @@
               <button id="task-close" class="task-action" type="button">Back to office</button>
             </section>
           </div>
-        </div>
-        <p class="hint" id="hint" role="status" aria-live="polite">Find HR to start the backfill quest.</p>
-        <p class="orientation-tip" role="note">For more room to play, try turning your phone sideways to landscape.</p>
-        <div class="controls">
-          <p class="key-help">Move: arrows / WASD &nbsp; Interact: E &nbsp; Politics: Space / F</p>
-          <div class="game-controls">
+          <div class="mobile-controls" role="group" aria-label="Touch game controls">
             <div class="pad" role="group" aria-label="Direction pad">
               <button type="button" data-key="ArrowUp" aria-label="Move up">↑</button>
               <button type="button" data-key="ArrowLeft" aria-label="Move left">←</button>
@@ -168,9 +189,18 @@
               <button type="button" data-key="ArrowRight" aria-label="Move right">→</button>
             </div>
             <div class="action-buttons">
-              <button id="interact" type="button">E · Go!</button>
-              <button id="politics" type="button" aria-label="Fire POLITICS">✨ Fire POLITICS</button>
+              <button type="button" data-action="interact">E · Go!</button>
+              <button type="button" data-action="politics" aria-label="Fire POLITICS">✨ Fire POLITICS</button>
             </div>
+          </div>
+        </div>
+        <p class="hint" id="hint" role="status" aria-live="polite">Find HR to start the backfill quest.</p>
+        <p class="orientation-tip" role="note">For more room to play, try turning your phone sideways to landscape.</p>
+        <div class="controls">
+          <p class="key-help">Move: arrows / WASD &nbsp; Interact: E &nbsp; Politics: Space / F</p>
+          <div class="action-buttons">
+            <button id="interact" type="button">E · Go!</button>
+            <button id="politics" type="button" aria-label="Fire POLITICS">✨ Fire POLITICS</button>
           </div>
         </div>
       </section>
@@ -1044,8 +1074,8 @@
     });
     document.querySelector("#start").addEventListener("click", startGame);
     document.querySelector("#restart").addEventListener("click", () => { resetGame(); startGame(); });
-    document.querySelector("#interact").addEventListener("click", interact);
-    document.querySelector("#politics").addEventListener("click", shootPolitics);
+    document.querySelectorAll("#interact, [data-action='interact']").forEach((button) => button.addEventListener("click", interact));
+    document.querySelectorAll("#politics, [data-action='politics']").forEach((button) => button.addEventListener("click", shootPolitics));
     document.querySelector("#task-close").addEventListener("click", closeHRTask);
     window.addEventListener("blur", () => keys.clear());
 
