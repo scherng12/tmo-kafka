@@ -511,7 +511,7 @@
           healthDisplay.textContent = "♥ ".repeat(hearts).trim() || "—";
           invulnerable = 1.2;
           setHint(`${workTypes[monster.type].name} monster bonked you! Shoot it before it catches you again.`);
-          if (hearts <= 0) finishGameOver("overwhelmed");
+          if (hearts <= 0) finishGameOver("overwhelmed", workTypes[monster.type].name);
         }
       });
     }
@@ -630,19 +630,28 @@
       }
     }
 
-    function finishGameOver(reason) {
+    function finishGameOver(reason, cause = "") {
       ended = true;
       running = false;
       reviewActive = false;
       bossActive = false;
       overlay.hidden = false;
+      const overwhelmedByRDoTF = reason === "overwhelmed" && cause === "RDoTF";
       document.querySelector("#dialog-sticker").textContent = reason === "fired" ? "📨" : "😵";
-      document.querySelector("#dialog-title").textContent = reason === "fired" ? "You're fired!" : "TMO overwhelm!";
+      document.querySelector("#dialog-title").textContent = reason === "fired"
+        ? "You're fired!"
+        : overwhelmedByRDoTF ? "RDoTF Overwhelmed You!" : "TMO overwhelm!";
       document.querySelector("#dialog-copy").textContent = reason === "fired"
         ? "Your work-points meter ran out. HR has revoked your badge. Defeat MRP, RDoTF, LoT, and Capivate monsters with POLITICS to keep your job."
-        : "The TMO people overwhelmed your focus. Take a breather, dodge better, and try the quest again.";
+        : overwhelmedByRDoTF
+          ? "RDoTF caught you and drained your last Focus point. Your TMO request has been overwhelmed by RDoTF. Take a breather and try the quest again."
+          : "The TMO people overwhelmed your focus. Take a breather, dodge better, and try the quest again.";
       document.querySelector("#start").textContent = "Try again";
-      setHint(reason === "fired" ? "Fired! Keep collecting work points to stay in the game." : "Game over. Restart and try to avoid the TMO people.");
+      setHint(reason === "fired"
+        ? "Fired! Keep collecting work points to stay in the game."
+        : overwhelmedByRDoTF
+          ? "RDoTF overwhelmed your TMO request. Try again!"
+          : "Game over. Restart and try to avoid the TMO people.");
     }
 
     function finishVictory() {
