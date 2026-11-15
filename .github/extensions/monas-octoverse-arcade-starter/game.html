@@ -57,6 +57,7 @@
     .action-buttons button { min-width: 4.5rem; min-height: 2.8rem; padding: 0.45rem 0.6rem; font-size: 0.8rem; }
     #politics { min-height: 3.8rem; border-radius: 1rem; background: #bd3567; font-size: 0.95rem; font-weight: 900; line-height: 1.15; text-transform: uppercase; box-shadow: 0 3px 0 #852044; }
     #politics:hover { background: #a92d5b; }
+    .orientation-tip { display: none; margin: 0 0 0.5rem; padding: 0.45rem 0.65rem; border-radius: 0.6rem; color: #634c16; background: #fff3d4; font-size: 0.78rem; font-weight: 700; text-align: center; }
     .quest-card { padding: 1rem; }
     .quest-card h2 { margin: 0; font-size: 1.05rem; }
     .quest-card .small { margin: 0.25rem 0 0.85rem; color: #756d82; font-size: 0.8rem; }
@@ -100,6 +101,12 @@
     @media (max-width: 350px) {
       .game-controls { gap: 0.2rem; }
       .action-buttons button { width: 6.8rem; min-width: 6.8rem; }
+    }
+    @media (orientation: portrait) {
+      html.mobile-device .orientation-tip { display: block; }
+    }
+    @media (orientation: portrait) and (max-width: 720px) {
+      .orientation-tip { display: block; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; }
@@ -149,6 +156,7 @@
           </div>
         </div>
         <p class="hint" id="hint" role="status" aria-live="polite">Find HR to start the backfill quest.</p>
+        <p class="orientation-tip" role="note">For more room to play, try turning your phone sideways to landscape.</p>
         <div class="controls">
           <p class="key-help">Move: arrows / WASD &nbsp; Interact: E &nbsp; Politics: Space / F</p>
           <div class="game-controls">
@@ -193,6 +201,13 @@
   <script>
     const canvas = document.querySelector("#game");
     const ctx = canvas.getContext("2d");
+    const isMobileDevice = Boolean(
+      navigator.userAgentData?.mobile ||
+      navigator.maxTouchPoints > 0 ||
+      "ontouchstart" in window ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    );
+    document.documentElement.classList.toggle("mobile-device", isMobileDevice);
     const overlay = document.querySelector("#overlay");
     const taskOverlay = document.querySelector("#task-overlay");
     const taskBody = document.querySelector("#task-body");
