@@ -465,6 +465,7 @@
         player.x = 130;
         player.y = 225;
         player.facing = { x: 1, y: 0 };
+        if (!underperformer) spawnUnderperformer();
         workMonsters.forEach((monster, index) => {
           const starts = [[285, 100], [420, 350], [520, 95], [530, 360]];
           monster.x = starts[index][0];
@@ -492,7 +493,7 @@
     }
 
     function shootPolitics() {
-      if (!running || ended || taskOpen || elapsed - lastPoliticsAt < 0.42) return;
+      if (!running || ended || taskOpen || elapsed - lastPoliticsAt < 0.2) return;
       lastPoliticsAt = elapsed;
       projectiles.push({
         x: player.x + player.facing.x * 17,
@@ -836,19 +837,29 @@
       ctx.save();
       ctx.translate(underperformer.x, underperformer.y);
       ctx.fillStyle = "#00000020";
-      ctx.beginPath(); ctx.ellipse(0, 15, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#e8a05b";
-      ctx.beginPath(); ctx.arc(0, 0, underperformer.radius, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#fffaf4";
-      ctx.beginPath(); ctx.arc(-4, -2, 3, 0, Math.PI * 2); ctx.arc(4, -2, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#493c57";
-      ctx.beginPath(); ctx.arc(-4, -2, 1.3, 0, Math.PI * 2); ctx.arc(4, -2, 1.3, 0, Math.PI * 2); ctx.fill();
-      roundedRect(-53, -underperformer.radius - 19, 106, 13, 5, "#fffaf4");
+      ctx.beginPath(); ctx.ellipse(0, 30, 25, 6, 0, 0, Math.PI * 2); ctx.fill();
+      roundedRect(-22, -27, 44, 58, 3, "#fffaf4");
+      roundedRect(-18, -23, 36, 34, 2, "#dce8f4");
+      ctx.fillStyle = "#f0c39e";
+      ctx.beginPath(); ctx.arc(0, -8, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#5b3b42";
+      ctx.beginPath(); ctx.ellipse(0, -14, 10, 6, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#352648";
+      ctx.beginPath(); ctx.arc(-3, -9, 1, 0, Math.PI * 2); ctx.arc(3, -9, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#67b8e4";
+      ctx.beginPath(); ctx.ellipse(-5, -3, 1.7, 4, 0, 0, Math.PI * 2); ctx.ellipse(5, -3, 1.7, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#9a4f5c";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(0, -1, 3, Math.PI, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = "#9c522a";
-      ctx.font = "800 8px system-ui, sans-serif";
+      ctx.font = "800 6px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("UNDERPERFORMER", 0, -underperformer.radius - 12.5);
+      ctx.fillText("FIX ME", 0, 19);
+      roundedRect(-53, -underperformer.radius - 26, 106, 13, 5, "#fffaf4");
+      ctx.fillStyle = "#9c522a";
+      ctx.font = "800 8px system-ui, sans-serif";
+      ctx.fillText("UNDERPERFORMER", 0, -underperformer.radius - 19.5);
       ctx.restore();
     }
 
