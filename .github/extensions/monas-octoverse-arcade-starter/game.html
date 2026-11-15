@@ -127,7 +127,7 @@
             <div class="dialog">
               <p class="sticker" id="dialog-sticker">📋</p>
               <h2 id="dialog-title">Your next hire awaits!</h2>
-              <p id="dialog-copy">Write a job description, tell HR the global grade, and negotiate that backfill. Submit to the TMO tracker, dodge TMO people for 12 seconds, claim your ID, then enter the pants arena. The work-point monsters are after you—shoot POLITICS to refill your meter, or get fired!</p>
+              <p id="dialog-copy">Write a job description, tell HR the global grade, and negotiate that backfill. Submit to the TMO tracker, dodge TMO people for 12 seconds, claim your ID, then enter the pants arena. Work-point monsters chase you, and random underperformers speed up your work-point drain until you walk over and fix them.</p>
               <button id="start" type="button">Start the quest</button>
             </div>
           </div>
@@ -160,7 +160,7 @@
 
       <aside class="quest-card">
         <h2>Quest log</h2>
-        <p class="small">Work-point monsters follow you. Shoot them with POLITICS to refill your life bar.</p>
+        <p class="small">Work-point monsters follow you. Shoot them with POLITICS to refill your life bar. Underperformers appear at random—walk over them to fix their faster work-point drain.</p>
         <div class="work-types" aria-label="Work-point monster types">
           <span>MRP</span><span>RDoTF</span><span>LoT</span><span>Capivate</span>
         </div>
@@ -201,6 +201,8 @@
     const width = canvas.width;
     const height = canvas.height;
     const tmoWaitSeconds = 12;
+    const workDrainPerSecond = 3.5;
+    const underperformerExtraDrainPerSecond = 3.5;
 
     const stations = [
       { name: "HR", x: 112, y: 112, color: "#e8a4b9", icon: "HR" },
@@ -236,6 +238,10 @@
     let score;
     let hearts;
     let work;
+    let underperformer;
+    let nextUnderperformerAt;
+    let underperformerNotice = "";
+    let underperformerNoticeUntil = 0;
     let progress;
     let scene;
     let elapsed;
@@ -261,6 +267,10 @@
       score = 0;
       hearts = 3;
       work = 100;
+      underperformer = null;
+      nextUnderperformerAt = 7 + Math.random() * 7;
+      underperformerNotice = "";
+      underperformerNoticeUntil = 0;
       progress = 0;
       scene = "office";
       elapsed = 0;
@@ -300,7 +310,7 @@
       overlay.hidden = false;
       document.querySelector("#dialog-sticker").textContent = "📋";
       document.querySelector("#dialog-title").textContent = "Your next hire awaits!";
-      document.querySelector("#dialog-copy").textContent = "Write a job description, tell HR the global grade, and negotiate that backfill. Submit to the TMO tracker, dodge TMO people for 12 seconds, claim your ID, then enter the pants arena. The work-point monsters are after you—shoot POLITICS to refill your meter, or get fired!";
+      document.querySelector("#dialog-copy").textContent = "Write a job description, tell HR the global grade, and negotiate that backfill. Submit to the TMO tracker, dodge TMO people for 12 seconds, claim your ID, then enter the pants arena. Work-point monsters chase you, and random underperformers speed up your work-point drain until you walk over and fix them.";
       document.querySelector("#start").textContent = "Start the quest";
       draw();
     }
@@ -516,6 +526,33 @@
       });
     }
 
+    function spawnUnderperformer() {
+      let position = { x: width - 55, y: height - 55 };
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        position = {
+          x: 45 + Math.random() * (width - 90),
+          y: 45 + Math.random() * (height - 90)
+        };
+        const tooCloseToPlayer = Math.hypot(position.x - player.x, position.y - player.y) < 110;
+        const tooCloseToStation = stations.some((station) => Math.hypot(position.x - station.x, position.y - station.y) < 60);
+        if (!tooCloseToPlayer && !tooCloseToStation) break;
+      }
+      underperformer = { ...position, radius: 15 };
+      setHint("Underperformer spotted! Walk over them to fix them before they drain your work points faster.");
+    }
+
+    function updateUnderperformer() {
+      if (!underperformer && elapsed >= nextUnderperformerAt) spawnUnderperformer();
+      if (!underperformer) return;
+      if (Math.hypot(player.x - underperformer.x, player.y - underperformer.y) < player.radius + underperformer.radius) {
+        underperformer = null;
+        nextUnderperformerAt = elapsed + 12 + Math.random() * 10;
+        underperformerNotice = "Underperformer fixed! Work points are draining at the normal rate.";
+        underperformerNoticeUntil = elapsed + 2.5;
+        setHint(underperformerNotice);
+      }
+    }
+
     function resolvePoliticsHits(dt) {
       projectiles.forEach((projectile) => {
         if (ended) return;
@@ -555,10 +592,12 @@
       invulnerable = Math.max(0, invulnerable - dt);
       const speed = Math.min(310, 170 + Math.floor(elapsed / 15) * 12);
       speedDisplay.textContent = `${(speed / 170).toFixed(1)}×`;
-      work = Math.max(0, work - 3.5 * dt);
+      updateUnderperformer();
+      const workDrainRate = workDrainPerSecond + (underperformer ? underperformerExtraDrainPerSecond : 0);
+      work = Math.max(0, work - workDrainRate * dt);
       updateWorkMeter();
       if (work <= 0) {
-        finishGameOver("fired");
+        finishGameOver("fired", underperformer ? "Underperformers" : "Work points");
         return;
       }
 
@@ -590,7 +629,7 @@
             invulnerable = 1.4;
             setHint("A TMO person got too close! Dodge them and keep moving.");
             if (hearts <= 0) {
-              finishGameOver("overwhelmed");
+              finishGameOver("overwhelmed", "TMO");
               return;
             }
           }
@@ -610,6 +649,14 @@
     }
 
     function updateStationHint() {
+      if (underperformer) {
+        setHint("Underperformer active! Walk over them to fix them—the work-point drain is faster.");
+        return;
+      }
+      if (elapsed < underperformerNoticeUntil) {
+        setHint(underperformerNotice);
+        return;
+      }
       if (bossActive) {
         setHint(objectiveText());
         return;
@@ -636,22 +683,21 @@
       reviewActive = false;
       bossActive = false;
       overlay.hidden = false;
-      const overwhelmedByRDoTF = reason === "overwhelmed" && cause === "RDoTF";
       document.querySelector("#dialog-sticker").textContent = reason === "fired" ? "📨" : "😵";
       document.querySelector("#dialog-title").textContent = reason === "fired"
-        ? "You're fired!"
-        : overwhelmedByRDoTF ? "RDoTF Overwhelmed You!" : "TMO overwhelm!";
+        ? cause === "Underperformers" ? "Underperformers Got You Fired!" : "You're fired!"
+        : `${cause} Got Your Focus!`;
       document.querySelector("#dialog-copy").textContent = reason === "fired"
-        ? "Your work-points meter ran out. HR has revoked your badge. Defeat MRP, RDoTF, LoT, and Capivate monsters with POLITICS to keep your job."
-        : overwhelmedByRDoTF
-          ? "RDoTF caught you and drained your last Focus point. Your TMO request has been overwhelmed by RDoTF. Take a breather and try the quest again."
-          : "The TMO people overwhelmed your focus. Take a breather, dodge better, and try the quest again.";
+        ? cause === "Underperformers"
+          ? "Unfixed underperformers sped up your work-point drain until it ran out. They got you fired—walk over them to fix them next time."
+          : "Your work-point meter ran out. No monster took your Focus; defeat the MRP, RDoTF, LoT, and Capivate monsters with POLITICS to replenish it."
+        : `The ${cause} monster drained your last Focus point and overwhelmed your TMO request. Dodge it or shoot it with POLITICS next time.`;
       document.querySelector("#start").textContent = "Try again";
       setHint(reason === "fired"
-        ? "Fired! Keep collecting work points to stay in the game."
-        : overwhelmedByRDoTF
-          ? "RDoTF overwhelmed your TMO request. Try again!"
-          : "Game over. Restart and try to avoid the TMO people.");
+        ? cause === "Underperformers"
+          ? "Underperformers drained your work points and got you fired."
+          : "Fired! Keep collecting work points to stay in the game."
+        : `${cause} took your last Focus point. Try again!`);
     }
 
     function finishVictory() {
@@ -785,6 +831,27 @@
       workMonsters.forEach(drawWorkMonster);
     }
 
+    function drawUnderperformer() {
+      if (!underperformer) return;
+      ctx.save();
+      ctx.translate(underperformer.x, underperformer.y);
+      ctx.fillStyle = "#00000020";
+      ctx.beginPath(); ctx.ellipse(0, 15, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#e8a05b";
+      ctx.beginPath(); ctx.arc(0, 0, underperformer.radius, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fffaf4";
+      ctx.beginPath(); ctx.arc(-4, -2, 3, 0, Math.PI * 2); ctx.arc(4, -2, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#493c57";
+      ctx.beginPath(); ctx.arc(-4, -2, 1.3, 0, Math.PI * 2); ctx.arc(4, -2, 1.3, 0, Math.PI * 2); ctx.fill();
+      roundedRect(-53, -underperformer.radius - 19, 106, 13, 5, "#fffaf4");
+      ctx.fillStyle = "#9c522a";
+      ctx.font = "800 8px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("UNDERPERFORMER", 0, -underperformer.radius - 12.5);
+      ctx.restore();
+    }
+
     function drawTmoMonster(monster) {
       ctx.save();
       ctx.translate(monster.x, monster.y);
@@ -895,6 +962,7 @@
       if (scene === "boss") drawBossBackground();
       else drawBackground();
       drawWorkMonsters();
+      drawUnderperformer();
       if (reviewActive) tmoMonsters.forEach(drawTmoMonster);
       drawPolitics();
       drawPants();
